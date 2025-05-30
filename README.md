@@ -1,6 +1,8 @@
 # OCR Luisa
 
-Proyecto para digitalizar documentos escaneados del proyecto Luisa (UDELAR) mediante OCR automático.
+Proyecto para digitalizar documentos escaneados mediante OCR automático.
+
+Inspirado en el proyecto Luisa (UDELAR)
 
 ---
 
@@ -49,22 +51,6 @@ OCR_Luisa/
 
 ---
 
-## Mejoras futuras
-
-- Mejor reconocimiento de columnas y formatos
-- Procesamiento multilenguaje
-- Corrección ortográfica avanzada
-- Interfaz web para validación colaborativa
-
----
-
-## Licencia
-
-Este proyecto está bajo la licencia MIT.  
-Podés usarlo, modificarlo y compartirlo libremente.
-
----
-
 ## Autor
 
-@TuUsuario
+@Franpa99
