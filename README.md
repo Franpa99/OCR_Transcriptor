@@ -2,7 +2,7 @@
 
 Proyecto para digitalizar documentos escaneados mediante OCR automático.
 
-Inspirado en el proyecto Luisa (UDELAR)
+Inspirado en el proyecto Luisa (UDELAR).
 
 ---
 
