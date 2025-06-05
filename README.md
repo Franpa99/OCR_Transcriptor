@@ -33,7 +33,7 @@ Está pensado para facilitar la lectura, accesibilidad y análisis de documentos
 - Paquetes necesarios (se pueden instalar con pip):
 
   ```bash
-  pip install easyocr opencv-python spellchecker torch
+  pip install easyocr opencv-python pyspellchecker torch
   ```
 
 ---
