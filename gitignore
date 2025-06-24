@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Caches
+# Caches and logs
 *.log
 *.pot
 *.pyc
@@ -35,22 +35,21 @@ env/
 .venv/
 .env/
 
-# VS Code
+# IDEs and editors
 .vscode/
-
-# PyCharm
 .idea/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 
-# Mac OS / Windows
+# System files
 .DS_Store
 Thumbs.db
 
-# Git
+# Swap files
 *.swp
 *.swo
 
-# Proyecto específico
+# Carpeta con resultados generados
 texto/
+procesadas/
