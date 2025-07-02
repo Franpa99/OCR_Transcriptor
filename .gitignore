@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches and logs
+*.log
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+ENV/
+.env/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de edición
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Checkpoints de notebooks
+.ipynb_checkpoints/
+
+# Archivos generados por el script
+procesadas/
+texto/
+
+# Carpeta opcional de backups
+backup/
