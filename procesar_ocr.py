@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from paddleocr import PaddleOCR
 import datetime
+from spellchecker import SpellChecker
 
 # Inicializamos el motor OCR de PaddleOCR para español
 ocr_engine = PaddleOCR(lang='es')
@@ -69,7 +70,6 @@ def extract_text_paddleocr(image_path):
     Devuelve el texto extraído.
     """
     try:
-        # Parámetros configurables (pueden ajustarse aquí o por argumentos)
         preprocessed_img = preprocess_image(
             image_path,
             contrast_clip=2.0,
@@ -93,13 +93,11 @@ def extract_text_paddleocr(image_path):
 
         # Ejecutar OCR
         result = ocr_engine.ocr(tmp_img_path)
-        # print(f"Resultado OCR crudo para {image_path}:\n{result}")
     except Exception as e:
         print(f"Error al ejecutar OCR en {image_path}: {e}")
         return ""
 
     texto_extraido = []
-
     try:
         # Manejo de resultado, que puede variar según versión de Paddle OCR
         if isinstance(result, list) and len(result) > 0 and isinstance(result[0], dict):
@@ -131,20 +129,31 @@ def extract_text_paddleocr(image_path):
         print(f"Error procesando líneas OCR en {image_path}: {e}")
         return ""
 
+    # Postprocesamiento: corrección ortográfica y reconstrucción de palabras
+    spell = SpellChecker(language='es')
+    texto_final = []
+    for linea in texto_extraido:
+        palabras = linea.split()
+        palabras_corregidas = []
+        for palabra in palabras:
+            # Solo corregir si la palabra no está en el diccionario y no es mayúscula (siglas)
+            if palabra.isalpha() and not palabra.isupper():
+                corregida = spell.correction(palabra)
+                palabras_corregidas.append(corregida if corregida else palabra)
+            else:
+                palabras_corregidas.append(palabra)
+        texto_final.append(' '.join(palabras_corregidas))
+
     # Unir líneas con salto para mejor legibilidad
-    return "\n".join(texto_extraido).strip()
+    return "\n".join(texto_final).strip()
 
 def process_image_folder(subfolder_path, output_name):
-    """
-    Procesa todas las imágenes en una carpeta, extrayendo texto de cada una.
-    Junta todo el texto en un solo archivo .txt con el nombre de la carpeta.
-    Guarda el archivo final en la carpeta 'texto/'.
-    """
     texto_final = f"Procesamiento: {datetime.datetime.now()}\nCarpeta: {output_name}\n\n"
+    print(f"Procesando carpeta: {subfolder_path}")
     for filename in sorted(os.listdir(subfolder_path)):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
             full_path = os.path.join(subfolder_path, filename)
-            print(f"Procesando {filename}...")
+            print(f"Procesando imagen: {full_path}")
             try:
                 texto = extract_text_paddleocr(full_path)
                 texto_final += f"\n\n### {filename} ###\n\n" + texto
@@ -158,11 +167,13 @@ def process_image_folder(subfolder_path, output_name):
         f.write(texto_final)
     print(f"Archivo final guardado en: {output_file}")
 
-if __name__ == '__main__':
+def main():
     base_folder = "image"
     # Buscar todas las subcarpetas dentro de 'image'
     subfolders = [d for d in os.listdir(base_folder)
                   if os.path.isdir(os.path.join(base_folder, d))]
+
+    print(f"Subcarpetas encontradas en '{base_folder}': {subfolders}")
 
     if not subfolders:
         print("No se encontró ninguna carpeta dentro de 'image/'.")
@@ -170,4 +181,11 @@ if __name__ == '__main__':
         # Procesar cada carpeta
         for subfolder in subfolders:
             full_path = os.path.join(base_folder, subfolder)
+            print(f"Procesando subcarpeta: {full_path}")
             process_image_folder(full_path, subfolder)
+
+if __name__ == '__main__':
+    # Si se quiere probar una imagen específica, descomentar y ajustar la ruta:
+    # test_img = r"C:\\Users\\Usuario\\Documents\\Proyectos\\OCR_Transcriptor\\image\\FBI\\dump_1.jpg"
+    # print(extract_text_paddleocr(test_img))
+    main()
