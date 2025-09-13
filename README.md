@@ -6,9 +6,9 @@ Proyecto para digitalizar documentos escaneados mediante OCR automático con Pad
 
 ## 📄 Descripción
 
-Este script en Python toma imágenes escaneadas de documentos históricos, las procesa con técnicas de preprocesamiento de imagen para mejorar la calidad, y luego extrae el texto usando OCR con PaddleOCR.
+Este script en Python toma imágenes escaneadas de documentos históricos, las procesa con técnicas avanzadas de preprocesamiento de imagen (mejora de contraste, corrección de rotación, binarización, reducción de ruido y nitidez configurable), y luego extrae el texto usando OCR con PaddleOCR.
 
-Está pensado para facilitar la lectura, accesibilidad y análisis de documentos de la dictadura uruguaya o cualquier documentación impresa escaneada.
+El preprocesamiento es configurable para adaptarse a distintos tipos de documentos y calidades de escaneo. El resultado es un texto más limpio y preciso, facilitando la lectura, accesibilidad y análisis de documentos históricos o cualquier documentación impresa escaneada.
 
 ---
 
@@ -23,6 +23,8 @@ Está pensado para facilitar la lectura, accesibilidad y análisis de documentos
    python procesar_ocr.py
    ```
 
+   Si querés ajustar los parámetros de preprocesamiento (contraste, binarización, nitidez, etc.), modificá los valores en la función `preprocess_image` dentro del script.
+
 3. El script procesará cada subcarpeta dentro de `image/`, escaneará las imágenes en orden alfabético y generará un archivo `.txt` con el mismo nombre de la carpeta dentro de `texto/`.
 
 4. Las imágenes preprocesadas se guardan en la carpeta `procesadas/` para control y revisión.
@@ -31,14 +33,15 @@ Está pensado para facilitar la lectura, accesibilidad y análisis de documentos
 
 ## 📦 Requisitos
 
+
 - Python 3.x
 - Instalar dependencias necesarias:
 
-  ```bash
-  pip install paddleocr opencv-python numpy pillow
-  ```
+   ```bash
+   pip install paddleocr opencv-python numpy pillow
+   ```
 
-  (Recomendado: usar un entorno virtual)
+   (Recomendado: usar un entorno virtual)
 
 ---
 
@@ -62,6 +65,8 @@ OCR_Transcriptor/
 - Reconocimiento de columnas y tablas
 - Corrección ortográfica automática
 - Interfaz web para validación colaborativa
+- Parámetros de preprocesamiento ajustables desde línea de comandos
+- Mejor filtrado de falsos positivos en OCR
 
 ---
 
