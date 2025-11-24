@@ -17,17 +17,23 @@ El preprocesamiento es configurable para adaptarse a distintos tipos de document
 1. Colocá las imágenes escaneadas dentro de una carpeta dentro de `image/`.
    Por ejemplo: `image/Documento1/`, `image/ArchivoX/`, etc.
 
-2. Ejecutá el script `procesar_ocr.py` desde la consola:
+2. (Opcional) Ajustá los parámetros en `config.py`:
+   - Umbral de confianza del OCR
+   - Parámetros de preprocesamiento (contraste, nitidez, etc.)
+   - Activar/desactivar corrección ortográfica
+   - Nivel de logging
+
+3. Ejecutá el script `procesar_ocr.py` desde la consola:
 
    ```bash
    python procesar_ocr.py
    ```
 
-   Si querés ajustar los parámetros de preprocesamiento (contraste, binarización, nitidez, etc.), modificá los valores en la función `preprocess_image` dentro del script.
+4. El script procesará cada subcarpeta dentro de `image/`, escaneará las imágenes en orden alfabético y generará un archivo `.txt` con el mismo nombre de la carpeta dentro de `texto/`.
 
-3. El script procesará cada subcarpeta dentro de `image/`, escaneará las imágenes en orden alfabético y generará un archivo `.txt` con el mismo nombre de la carpeta dentro de `texto/`.
+5. Las imágenes preprocesadas se guardan en la carpeta `procesadas/` para control y revisión.
 
-4. Las imágenes preprocesadas se guardan en la carpeta `procesadas/` para control y revisión.
+6. Revisá el archivo `ocr_process.log` para ver detalles del procesamiento.
 
 ---
 
@@ -38,7 +44,13 @@ El preprocesamiento es configurable para adaptarse a distintos tipos de document
 - Instalar dependencias necesarias:
 
    ```bash
-   pip install paddleocr opencv-python numpy pillow
+   pip install -r requirements.txt
+   ```
+
+   O manualmente:
+
+   ```bash
+   pip install paddleocr opencv-python numpy pillow pyspellchecker
    ```
 
    (Recomendado: usar un entorno virtual)
@@ -54,19 +66,33 @@ OCR_Transcriptor/
 ├── texto/              # Carpeta donde se guardan textos generados
 ├── backup/             # Carpeta con backups de imágenes/textos generados (no se sube al repo)
 ├── procesar_ocr.py     # Script principal en Python
+├── config.py           # Archivo de configuración con parámetros ajustables
+├── ocr_process.log     # Archivo de log del proceso (generado automáticamente)
+├── requirements.txt    # Dependencias del proyecto
 ├── README.md           # Este archivo
 └── .gitignore          # Archivos y carpetas ignoradas por git
 ```
 
 ---
 
+## ✨ Características
+
+- **Preprocesamiento avanzado**: Mejora de contraste, corrección de rotación, binarización, reducción de ruido
+- **OCR en español**: Usa PaddleOCR optimizado para textos en español
+- **Corrección ortográfica**: Corrección automática de palabras usando diccionario español
+- **Filtrado inteligente**: Elimina falsos positivos y texto con baja confianza
+- **Logging detallado**: Archivo de log con información del proceso completo
+- **Procesamiento por lotes**: Procesa múltiples carpetas automáticamente
+
+---
+
 ## 🔧 Mejoras futuras
 
 - Reconocimiento de columnas y tablas
-- Corrección ortográfica automática
 - Interfaz web para validación colaborativa
 - Parámetros de preprocesamiento ajustables desde línea de comandos
-- Mejor filtrado de falsos positivos en OCR
+- Soporte para procesamiento paralelo de imágenes
+- Métricas de calidad del OCR
 
 ---
 

@@ -2,3 +2,4 @@ paddleocr
 opencv-python
 numpy
 pillow
+pyspellchecker

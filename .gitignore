@@ -30,5 +30,8 @@ Thumbs.db
 procesadas/
 texto/
 
+# Logs del proceso
+ocr_process.log
+
 # Carpeta opcional de backups
 backup/
