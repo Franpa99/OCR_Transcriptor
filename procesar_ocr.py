@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 # Inicializamos el motor OCR de PaddleOCR
 try:
-    ocr_engine = PaddleOCR(lang=OCR_LANGUAGE, use_angle_cls=True, show_log=False)
+    ocr_engine = PaddleOCR(lang=OCR_LANGUAGE, use_textline_orientation=True)
     logger.info("Motor OCR inicializado correctamente")
 except Exception as e:
     logger.error(f"Error al inicializar PaddleOCR: {e}")
