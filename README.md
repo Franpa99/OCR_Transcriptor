@@ -77,9 +77,15 @@ OCR_Transcriptor/
 
 ## ✨ Características
 
-- **Preprocesamiento avanzado**: Mejora de contraste, corrección de rotación, binarización, reducción de ruido
+- **Preprocesamiento avanzado**: Mejora de contraste, corrección de rotación, binarización, reducción de ruido, operaciones morfológicas (dilate/erode)
 - **OCR en español**: Usa PaddleOCR optimizado para textos en español
 - **Corrección ortográfica**: Corrección automática de palabras usando diccionario español
+- **Limpieza de artefactos**: Elimina errores comunes del OCR (n0→no, rn→m, etc.)
+- **Reconstrucción de palabras**: Une palabras partidas entre líneas
+- **Dos versiones de salida**: 
+  - **Versión RAW**: Texto crudo sin postprocesar
+  - **Versión PROCESADA**: Texto limpiado y corregido
+- **Perfiles configurables**: Optimizado para documentos modernos o históricos
 - **Filtrado inteligente**: Elimina falsos positivos y texto con baja confianza
 - **Logging detallado**: Archivo de log con información del proceso completo
 - **Procesamiento por lotes**: Procesa múltiples carpetas automáticamente

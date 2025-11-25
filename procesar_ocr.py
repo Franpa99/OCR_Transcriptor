@@ -6,11 +6,13 @@ from paddleocr import PaddleOCR
 import datetime
 from spellchecker import SpellChecker
 import logging
+import re
 from config import (
     OCR_LANGUAGE, CONFIDENCE_THRESHOLD, MIN_TEXT_LENGTH,
     PREPROCESS_CONFIG, SPELL_CHECK_ENABLED, SPELL_CHECK_LANGUAGE,
     IMAGE_FOLDER, OUTPUT_FOLDER, PROCESSED_FOLDER,
-    VALID_EXTENSIONS, LOG_FILE, LOG_LEVEL
+    VALID_EXTENSIONS, LOG_FILE, LOG_LEVEL,
+    GENERATE_RAW_OUTPUT, AGGRESSIVE_CLEANING
 )
 
 # Configurar logging
@@ -32,15 +34,17 @@ except Exception as e:
     logger.error(f"Error al inicializar PaddleOCR: {e}")
     raise
 
-def preprocess_image(image_path, contrast_clip=2.0, binarize_block=31, binarize_C=10, denoise_h=20, sharpen=True):
+def preprocess_image(image_path, contrast_clip=2.0, binarize_block=31, binarize_C=10, denoise_h=20, sharpen=True, deskew=True, dilate_erode=False):
     """
     Preprocesa la imagen para mejorar el resultado del OCR.
     Parámetros:
-        contrast_clip: float, límite de ecualización adaptativa (CLAHE)
-        binarize_block: int, tamaño de bloque para umbral adaptativo
+        contrast_clip: float, límite de ecualización adaptativa (CLAHE). 1.0 = sin cambio
+        binarize_block: int, tamaño de bloque para umbral adaptativo. 0 = desactivado
         binarize_C: int, constante para umbral adaptativo
-        denoise_h: int, fuerza de denoising
+        denoise_h: int, fuerza de denoising. 0 = desactivado
         sharpen: bool, aplicar filtro de nitidez
+        deskew: bool, aplicar corrección de rotación automática
+        dilate_erode: bool, aplicar operaciones morfológicas para conectar letras fragmentadas
     """
     img = cv2.imread(image_path)
     if img is None:
@@ -49,41 +53,153 @@ def preprocess_image(image_path, contrast_clip=2.0, binarize_block=31, binarize_
     # 1. Convertir a escala de grises
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # 2. Mejorar contraste usando ecualización adaptativa
-    clahe = cv2.createCLAHE(clipLimit=contrast_clip, tileGridSize=(8,8))
-    gray = clahe.apply(gray)
+    # 2. Mejorar contraste usando ecualización adaptativa (solo si contrast_clip > 1.0)
+    if contrast_clip > 1.0:
+        clahe = cv2.createCLAHE(clipLimit=contrast_clip, tileGridSize=(8,8))
+        gray = clahe.apply(gray)
 
-    # 3. Detectar y corregir rotación (deskew) usando momentos de imagen
-    coords = np.column_stack(np.where(gray < 255))
-    if len(coords) > 0:
-        angle = cv2.minAreaRect(coords)[-1]
-        if angle < -45:
-            angle = -(90 + angle)
-        else:
-            angle = -angle
-        (h, w) = gray.shape[:2]
-        center = (w // 2, h // 2)
-        M = cv2.getRotationMatrix2D(center, angle, 1.0)
-        gray = cv2.warpAffine(gray, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+    # 3. Detectar y corregir rotación (deskew) usando momentos de imagen (solo si está activado)
+    if deskew:
+        coords = np.column_stack(np.where(gray < 255))
+        if len(coords) > 0:
+            angle = cv2.minAreaRect(coords)[-1]
+            if angle < -45:
+                angle = -(90 + angle)
+            else:
+                angle = -angle
+            (h, w) = gray.shape[:2]
+            center = (w // 2, h // 2)
+            M = cv2.getRotationMatrix2D(center, angle, 1.0)
+            gray = cv2.warpAffine(gray, M, (w, h), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
 
     # 4. Mejorar nitidez con filtro de realce (opcional)
     if sharpen:
         kernel_sharpen = np.array([[0, -1, 0], [-1, 5,-1], [0, -1, 0]])
         gray = cv2.filter2D(gray, -1, kernel_sharpen)
 
-    # 5. Umbral adaptativo para binarizar
-    thresh = cv2.adaptiveThreshold(gray, 255,
-                                   cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                   cv2.THRESH_BINARY, binarize_block, binarize_C)
+    # 5. Umbral adaptativo para binarizar (solo si binarize_block > 0)
+    if binarize_block > 0:
+        thresh = cv2.adaptiveThreshold(gray, 255,
+                                       cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                       cv2.THRESH_BINARY, binarize_block, binarize_C)
+    else:
+        thresh = gray  # Mantener escala de grises sin binarizar
 
-    # 6. Apertura morfológica para eliminar ruido pequeño
-    kernel = np.ones((2,2), np.uint8)
-    clean = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    # 6. Apertura morfológica para eliminar ruido pequeño (solo si se binarizó)
+    if binarize_block > 0:
+        kernel = np.ones((2,2), np.uint8)
+        clean = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    else:
+        clean = thresh
 
-    # 7. Eliminación de ruido de fondo
-    denoised = cv2.fastNlMeansDenoising(clean, h=denoise_h)
+    # 6b. Dilate/Erode para conectar letras fragmentadas (solo para documentos históricos)
+    if dilate_erode and binarize_block > 0:
+        # Dilatar para conectar componentes cercanos
+        kernel_dilate = np.ones((2,2), np.uint8)
+        clean = cv2.dilate(clean, kernel_dilate, iterations=1)
+        # Erosionar para volver al tamaño original
+        kernel_erode = np.ones((2,2), np.uint8)
+        clean = cv2.erode(clean, kernel_erode, iterations=1)
+
+    # 7. Eliminación de ruido de fondo (solo si denoise_h > 0)
+    if denoise_h > 0:
+        denoised = cv2.fastNlMeansDenoising(clean, h=denoise_h)
+    else:
+        denoised = clean
 
     return denoised
+
+def clean_ocr_artifacts(text, aggressive=False):
+    """
+    Limpia artefactos comunes del OCR.
+    
+    Args:
+        text: Texto a limpiar
+        aggressive: Si True, aplica limpieza más agresiva para documentos deteriorados
+    
+    Returns:
+        str: Texto limpiado
+    """
+    if not text:
+        return text
+    
+    # Correcciones básicas comunes
+    replacements = {
+        'n0': 'no',
+        'N0': 'NO', 
+        'o0': 'oo',
+        'O0': 'OO',
+        '0o': 'oo',
+        '0O': 'OO',
+        'l0': 'lo',
+        'L0': 'LO',
+        '0l': 'ol',
+        '0L': 'OL',
+        'rn': 'm',  # común en OCR
+        '|': 'I',   # barras verticales confundidas con I
+    }
+    
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    
+    if aggressive:
+        # Remover caracteres sueltos (probable ruido)
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            # Eliminar líneas con solo 1-2 caracteres que sean símbolos o números sueltos
+            if len(line.strip()) <= 2 and not line.strip().isalpha():
+                continue
+            # Eliminar símbolos aleatorios comunes del OCR
+            line = re.sub(r'[~`´¨^°]', '', line)
+            # Eliminar espacios múltiples
+            line = re.sub(r'\s{2,}', ' ', line)
+            cleaned_lines.append(line)
+        text = '\n'.join(cleaned_lines)
+    
+    return text
+
+def reconstruct_broken_words(lines):
+    """
+    Intenta reconstruir palabras partidas entre líneas.
+    
+    Args:
+        lines: Lista de líneas de texto
+    
+    Returns:
+        list: Líneas con palabras reconstruidas
+    """
+    if len(lines) < 2:
+        return lines
+    
+    reconstructed = []
+    i = 0
+    while i < len(lines):
+        current_line = lines[i].strip()
+        
+        # Si la línea actual termina con guión, intentar unir con la siguiente
+        if i < len(lines) - 1 and current_line.endswith('-'):
+            next_line = lines[i + 1].strip()
+            # Unir removiendo el guión
+            combined = current_line[:-1] + next_line
+            reconstructed.append(combined)
+            i += 2
+        # Si la línea termina con una palabra incompleta (sin puntuación)
+        elif i < len(lines) - 1 and current_line and not current_line[-1] in '.,:;!?':
+            next_line = lines[i + 1].strip()
+            # Si la siguiente línea empieza con minúscula, probablemente es continuación
+            if next_line and next_line[0].islower():
+                combined = current_line + next_line
+                reconstructed.append(combined)
+                i += 2
+            else:
+                reconstructed.append(current_line)
+                i += 1
+        else:
+            reconstructed.append(current_line)
+            i += 1
+    
+    return reconstructed
 
 def extract_text_paddleocr(image_path, confidence_threshold=CONFIDENCE_THRESHOLD):
     """
@@ -106,7 +222,9 @@ def extract_text_paddleocr(image_path, confidence_threshold=CONFIDENCE_THRESHOLD
             binarize_block=PREPROCESS_CONFIG['binarize_block'],
             binarize_C=PREPROCESS_CONFIG['binarize_C'],
             denoise_h=PREPROCESS_CONFIG['denoise_h'],
-            sharpen=PREPROCESS_CONFIG['sharpen']
+            sharpen=PREPROCESS_CONFIG['sharpen'],
+            deskew=PREPROCESS_CONFIG['deskew'],
+            dilate_erode=PREPROCESS_CONFIG.get('dilate_erode', False)
         )
 
         # Guardar imagen preprocesada para control
@@ -173,6 +291,9 @@ def extract_text_paddleocr(image_path, confidence_threshold=CONFIDENCE_THRESHOLD
         logger.error(f"Error procesando líneas OCR en {image_path}: {e}")
         return ""
 
+    # VERSIÓN RAW: texto crudo sin postprocesamiento (solo limpieza básica)
+    texto_raw = '\n'.join(texto_extraido)
+    
     # Postprocesamiento: corrección ortográfica y reconstrucción de palabras
     if SPELL_CHECK_ENABLED:
         try:
@@ -180,18 +301,30 @@ def extract_text_paddleocr(image_path, confidence_threshold=CONFIDENCE_THRESHOLD
             texto_final = []
             palabras_corregidas_count = 0
             
+            # Primero limpiar artefactos del OCR
+            texto_extraido_limpio = []
             for linea in texto_extraido:
+                linea_limpia = clean_ocr_artifacts(linea, aggressive=AGGRESSIVE_CLEANING)
+                if linea_limpia.strip():
+                    texto_extraido_limpio.append(linea_limpia)
+            
+            # Intentar reconstruir palabras partidas
+            texto_extraido_reconstruido = reconstruct_broken_words(texto_extraido_limpio)
+            
+            for linea in texto_extraido_reconstruido:
                 palabras = linea.split()
                 palabras_corregidas = []
                 for palabra in palabras:
+                    # Limpiar puntuación para corrección
+                    palabra_limpia = palabra.strip('.,;:!?()[]{}«»""\'')
                     # Solo corregir si la palabra no está en el diccionario y no es mayúscula (siglas)
-                    if palabra.isalpha() and not palabra.isupper():
-                        corregida = spell.correction(palabra)
-                        if corregida and corregida != palabra:
+                    if palabra_limpia and palabra_limpia.isalpha() and not palabra_limpia.isupper() and len(palabra_limpia) > 2:
+                        corregida = spell.correction(palabra_limpia)
+                        if corregida and corregida != palabra_limpia:
+                            # Preservar puntuación original
+                            palabra = palabra.replace(palabra_limpia, corregida)
                             palabras_corregidas_count += 1
-                        palabras_corregidas.append(corregida if corregida else palabra)
-                    else:
-                        palabras_corregidas.append(palabra)
+                    palabras_corregidas.append(palabra)
                 texto_final.append(' '.join(palabras_corregidas))
             
             logger.info(f"Corrección ortográfica: {palabras_corregidas_count} palabras corregidas")
@@ -199,13 +332,20 @@ def extract_text_paddleocr(image_path, confidence_threshold=CONFIDENCE_THRESHOLD
             logger.warning(f"Error en corrección ortográfica: {e}. Se usará texto sin corregir.")
             texto_final = texto_extraido
     else:
-        texto_final = texto_extraido
+        # Sin corrección ortográfica, pero aplicar limpieza si está activada
+        if AGGRESSIVE_CLEANING:
+            texto_extraido_limpio = [clean_ocr_artifacts(linea, aggressive=True) for linea in texto_extraido]
+            texto_final = reconstruct_broken_words(texto_extraido_limpio)
+        else:
+            texto_final = texto_extraido
         logger.info("Corrección ortográfica desactivada")
 
     # Unir líneas con salto para mejor legibilidad
-    resultado = "\n".join(texto_final).strip()
-    logger.info(f"Texto final extraído: {len(resultado)} caracteres")
-    return resultado
+    resultado_procesado = "\n".join(texto_final).strip()
+    logger.info(f"Texto final extraído: {len(resultado_procesado)} caracteres")
+    
+    # Retornar tupla con versión raw y procesada
+    return (texto_raw, resultado_procesado)
 
 def process_image_folder(subfolder_path, output_name):
     """
@@ -215,7 +355,8 @@ def process_image_folder(subfolder_path, output_name):
         subfolder_path: Ruta a la carpeta con imágenes
         output_name: Nombre base para el archivo de salida
     """
-    texto_final = f"Procesamiento: {datetime.datetime.now()}\nCarpeta: {output_name}\n\n"
+    texto_procesado = f"Procesamiento: {datetime.datetime.now()}\nCarpeta: {output_name}\n\n"
+    texto_raw = f"Procesamiento: {datetime.datetime.now()}\nCarpeta: {output_name}\nVERSIÓN RAW (sin postprocesar)\n\n"
     logger.info(f"=== Procesando carpeta: {subfolder_path} ===")
     
     imagenes_procesadas = 0
@@ -234,24 +375,44 @@ def process_image_folder(subfolder_path, output_name):
         for filename in imagenes:
             full_path = os.path.join(subfolder_path, filename)
             try:
-                texto = extract_text_paddleocr(full_path)
-                if texto:
-                    texto_final += f"\n\n### {filename} ###\n\n" + texto
-                    imagenes_procesadas += 1
+                resultado = extract_text_paddleocr(full_path)
+                # Ahora extract_text_paddleocr retorna tupla (raw, procesado)
+                if isinstance(resultado, tuple):
+                    raw_text, processed_text = resultado
+                    if processed_text:
+                        texto_procesado += f"\n\n### {filename} ###\n\n" + processed_text
+                        if GENERATE_RAW_OUTPUT:
+                            texto_raw += f"\n\n### {filename} ###\n\n" + raw_text
+                        imagenes_procesadas += 1
+                    else:
+                        logger.warning(f"No se extrajo texto de {filename}")
+                        imagenes_fallidas += 1
                 else:
-                    logger.warning(f"No se extrajo texto de {filename}")
-                    imagenes_fallidas += 1
+                    # Compatibilidad con versión anterior (por si acaso)
+                    if resultado:
+                        texto_procesado += f"\n\n### {filename} ###\n\n" + resultado
+                        imagenes_procesadas += 1
+                    else:
+                        imagenes_fallidas += 1
             except Exception as e:
                 logger.error(f"Error procesando {filename}: {e}", exc_info=True)
                 imagenes_fallidas += 1
 
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+        
+        # Guardar versión procesada
         output_file = os.path.join(OUTPUT_FOLDER, f"{output_name}.txt")
-        
         with open(output_file, "w", encoding="utf-8") as f:
-            f.write(texto_final)
+            f.write(texto_procesado)
+        logger.info(f"Archivo procesado guardado: {output_file}")
         
-        logger.info(f"Archivo guardado: {output_file}")
+        # Guardar versión raw si está activada
+        if GENERATE_RAW_OUTPUT:
+            output_file_raw = os.path.join(OUTPUT_FOLDER, f"{output_name}_RAW.txt")
+            with open(output_file_raw, "w", encoding="utf-8") as f:
+                f.write(texto_raw)
+            logger.info(f"Archivo RAW guardado: {output_file_raw}")
+        
         logger.info(f"Resumen - Procesadas: {imagenes_procesadas}, Fallidas: {imagenes_fallidas}")
         
     except Exception as e:
