@@ -12,7 +12,40 @@ El preprocesamiento es configurable para adaptarse a distintos tipos de document
 
 ---
 
-## 🧪 Cómo usarlo
+## 🌐 Interfaz Web
+
+Este proyecto ahora incluye una **interfaz web moderna y fácil de usar**:
+
+- 🎨 Diseño limpio y responsivo
+- 📤 Drag & drop para subir archivos
+- ⚙️ Configuración de perfiles (documentos históricos o alta calidad)
+- 🌍 Selección de idioma (español/inglés)
+- 💾 Descarga directa del texto transcrito
+- 📋 Copia al portapapeles con un clic
+
+**👉 [Ver guía de despliegue web](DEPLOY.md)**
+
+### Uso rápido de la interfaz web:
+
+1. **Probar localmente:**
+   ```bash
+   # Instalar dependencias
+   pip install -r requirements.txt
+   
+   # Iniciar el servidor backend
+   python app.py
+   
+   # Abrir index.html en tu navegador
+   ```
+
+2. **Desplegar en producción:**
+   - Frontend: GitHub Pages (gratis)
+   - Backend: Render.com o Railway.app (gratis)
+   - [Instrucciones completas en DEPLOY.md](DEPLOY.md)
+
+---
+
+## 🧪 Uso desde línea de comandos
 
 1. Colocá las imágenes escaneadas dentro de una carpeta dentro de `image/`.
    Por ejemplo: `image/Documento1/`, `image/ArchivoX/`, etc.
@@ -65,11 +98,25 @@ OCR_Transcriptor/
 ├── procesadas/         # Carpeta donde se guardan las imágenes preprocesadas
 ├── texto/              # Carpeta donde se guardan textos generados
 ├── backup/             # Carpeta con backups de imágenes/textos generados (no se sube al repo)
+│
+├── Web Interface/      # 🌐 Interfaz web
+│   ├── index.html      # Página principal
+│   ├── styles.css      # Estilos
+│   └── script.js       # Lógica del frontend
+│
 ├── procesar_ocr.py     # Script principal en Python
+├── app.py              # API Flask para la interfaz web
 ├── config.py           # Archivo de configuración con parámetros ajustables
-├── ocr_process.log     # Archivo de log del proceso (generado automáticamente)
+│
 ├── requirements.txt    # Dependencias del proyecto
+├── Procfile            # Configuración para despliegue en Heroku/Render
+├── render.yaml         # Configuración para Render.com
+├── runtime.txt         # Versión de Python para despliegue
+│
 ├── README.md           # Este archivo
+├── DEPLOY.md           # Guía de despliegue web
+├── GUIA_INICIO.md      # Guía de inicio rápido
+├── ocr_process.log     # Archivo de log del proceso (generado automáticamente)
 └── .gitignore          # Archivos y carpetas ignoradas por git
 ```
 
@@ -94,11 +141,13 @@ OCR_Transcriptor/
 
 ## 🔧 Mejoras futuras
 
+- ✅ ~~Interfaz web para procesamiento de imágenes~~
 - Reconocimiento de columnas y tablas
-- Interfaz web para validación colaborativa
-- Parámetros de preprocesamiento ajustables desde línea de comandos
+- Interfaz web para validación colaborativa del texto
 - Soporte para procesamiento paralelo de imágenes
 - Métricas de calidad del OCR
+- Integración con servicios en la nube (AWS, Azure, GCP)
+- Soporte para procesamiento de PDFs directamente
 
 ---
 

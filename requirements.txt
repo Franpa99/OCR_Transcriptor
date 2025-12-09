@@ -3,3 +3,8 @@ opencv-python
 numpy
 pillow
 pyspellchecker
+flask
+flask-cors
+werkzeug
+gunicorn
+requests

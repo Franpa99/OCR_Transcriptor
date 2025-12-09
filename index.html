@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Transcriptor - Digitaliza tus documentos</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 OCR Transcriptor</h1>
+            <p class="subtitle">Convierte imágenes de documentos en texto editable</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <div class="drop-zone" id="dropZone">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <h3>Arrastra tus imágenes aquí</h3>
+                    <p>o haz clic para seleccionar archivos</p>
+                    <p class="file-info">Formatos soportados: JPG, PNG, JPEG, BMP, TIFF</p>
+                    <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.bmp,.tiff,.tif" hidden>
+                </div>
+
+                <div class="options-section">
+                    <h3>⚙️ Configuración</h3>
+                    <div class="option-group">
+                        <label for="profile">Perfil de procesamiento:</label>
+                        <select id="profile">
+                            <option value="HISTORICOS">Documentos históricos (papel viejo, manchas)</option>
+                            <option value="ALTA_CALIDAD">Alta calidad (PDFs escaneados nítidos)</option>
+                        </select>
+                    </div>
+                    <div class="option-group">
+                        <label for="language">Idioma:</label>
+                        <select id="language">
+                            <option value="es">Español</option>
+                            <option value="en">Inglés</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="processBtn" class="process-btn" disabled>
+                    Procesar Documentos
+                </button>
+            </div>
+
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h3>📋 Archivos seleccionados</h3>
+                <div id="fileList" class="file-list"></div>
+            </div>
+
+            <div class="loading-section" id="loadingSection" style="display: none;">
+                <div class="spinner"></div>
+                <p>Procesando imágenes... Por favor espera</p>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h3>✅ Transcripción completada</h3>
+                <div class="result-actions">
+                    <button id="copyBtn" class="action-btn">📋 Copiar texto</button>
+                    <button id="downloadBtn" class="action-btn">💾 Descargar TXT</button>
+                    <button id="newProcessBtn" class="action-btn secondary">🔄 Procesar nuevos archivos</button>
+                </div>
+                <div class="result-container">
+                    <pre id="resultText"></pre>
+                </div>
+            </div>
+
+            <div class="error-section" id="errorSection" style="display: none;">
+                <div class="error-message">
+                    <h3>⚠️ Error</h3>
+                    <p id="errorText"></p>
+                    <button id="retryBtn" class="action-btn">🔄 Intentar de nuevo</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Desarrollado con PaddleOCR | 
+                <a href="https://github.com/Franpa99/OCR_Transcriptor" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
